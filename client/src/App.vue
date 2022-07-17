@@ -74,11 +74,11 @@ export default {
       worker: null,
     },
     hashPercentage: 0,
-    data: [],
+    data: [], // 切片
     requestList: [],
     status: Status.wait,
-    // 当暂停时会取消 xhr 导致进度条后退
-    // 为了避免这种情况，需要定义一个假的进度条
+    // 當暂停时会取消 xhr 導進度條後退
+    // 為了避免這種情況，需要定一一个假的進度條
     // use fake progress to avoid progress backwards when upload is paused
     fakeUploadPercentage: 0,
     message: '',
@@ -157,7 +157,7 @@ export default {
         Object.keys(headers).forEach((key) => xhr.setRequestHeader(key, headers[key]));
         xhr.send(data);
         xhr.onload = (e) => {
-          // 将请求成功的 xhr 从列表中删除
+          // 將請求成功的 xhr 从列表中删除
           // remove xhr which status is success
           if (requestList) {
             const xhrIndex = requestList.findIndex((item) => item === xhr);
@@ -167,7 +167,7 @@ export default {
             data: e.target.response,
           });
         };
-        // 暴露当前 xhr 给外部
+        // 暴露當前 xhr 给外部
         // export xhr
         requestList.push(xhr);
       });
@@ -188,11 +188,15 @@ export default {
     calculateHash(fileChunkList) {
       return new Promise((resolve) => {
         this.container.worker = new Worker('/hash.js');
+        // 傳送{fileChunkList}給/hash.js
         this.container.worker.postMessage({ fileChunkList });
+        // 接收/hash.js傳送的物件
+        // 計算出一個文件的hash值
         this.container.worker.onmessage = (e) => {
           const { percentage, hash } = e.data;
           this.hashPercentage = percentage;
           if (hash) {
+            // 回傳切片計算出的hash值
             resolve(hash);
           }
         };
@@ -208,7 +212,9 @@ export default {
     async handleUpload() {
       if (!this.container.file) return;
       this.status = Status.uploading;
+      // arr = [切片1, 切片2....]
       const fileChunkList = this.createFileChunk(this.container.file);
+      // 計算出一個文件的hash值
       this.container.hash = await this.calculateHash(fileChunkList);
 
       const { shouldUpload, uploadedList } = await this.verifyUpload(
@@ -233,7 +239,7 @@ export default {
 
       await this.uploadChunks(uploadedList);
     },
-    // 上传切片，同时过滤已上传的切片
+    // 上傳切片，同時過濾已上傳的切片
     // upload chunks and filter uploaded chunks
     async uploadChunks(uploadedList = []) {
       const requestList = this.data
@@ -253,7 +259,7 @@ export default {
           requestList: this.requestList,
         }));
       await Promise.all(requestList);
-      // 之前上传的切片数量 + 本次上传的切片数量 = 所有切片数量时合并切片
+      // 之前上傳的切片數量 + 本次上傳的切片數量 = 所有切片數量時合併切片
       // merge chunks when the number of chunks uploaded before and
       // the number of chunks uploaded this time
       // are equal to the number of all chunks
@@ -261,7 +267,7 @@ export default {
         await this.mergeRequest();
       }
     },
-    // 通知服务端合并切片
+    // 通知服務端合併切片
     // notify server to merge chunks
     async mergeRequest() {
       await this.request({
@@ -278,8 +284,8 @@ export default {
       this.message = '上傳成功';
       this.status = Status.wait;
     },
-    // 根据 hash 验证文件是否曾经已经被上传过
-    // 没有才进行上传
+    // 根據 hash 驗證文件是否曾经已经被上傳過
+    // 没有才進行上傳
     // verify that the file has been uploaded based on the hash
     // skip if uploaded
     async verifyUpload(filename, fileHash) {
@@ -295,7 +301,7 @@ export default {
       });
       return JSON.parse(data);
     },
-    // 用闭包保存每个 chunk 的进度数据
+    // 用閉包保存每個 chunk 的進度數據
     // use closures to save progress data for each chunk
     createProgressHandler(item) {
       const it = item;

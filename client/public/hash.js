@@ -16,6 +16,7 @@ self.onmessage = e => {
       count++;
       spark.append(e.target.result);
       if (count === fileChunkList.length) {
+        // postMessage(object)傳送物件object給app.vue
         self.postMessage({
           percentage: 100,
           hash: spark.end()
